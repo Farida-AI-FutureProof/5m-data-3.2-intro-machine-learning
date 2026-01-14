@@ -22,7 +22,7 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
-from sklearn.datasets import fetch_california_housing, load_breast_cancer
+from sklearn.datasets import fetch_california_housing, load_breast_cancer, load_diabetes
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
@@ -52,37 +52,38 @@ def exercise_1_linear_regression(output_dir: Path, show_plots: bool) -> None:
     banner("EXERCISE 1: LINEAR REGRESSION - CALIFORNIA HOUSING")
 
     # California Housing requires an internet download the first time.
-    try:
-        housing = fetch_california_housing()
-    except Exception as e:
-        print("\n[ERROR] Could not fetch California Housing dataset.")
-        print("This often happens when there is no internet access in the grading environment.")
-        print("Error details:", repr(e))
-        print("\nTip: Re-run once you have internet, or run in an environment where sklearn datasets can download.")
-        return
+try:
+    housing = fetch_california_housing()
+except Exception as e:
+    print("\n[ERROR] Could not fetch California Housing dataset.")
+    print("This often happens when there is no internet access in the grading environment.")
+    print("Error details:", repr(e))
+    print("Tip: Re-run once you have internet, or run in an environment where sklearn datasets can download.")
+    return
 
-    X = housing.data
-    y = housing.target
+X = housing.data
+y = housing.target
 
-    print(f"\nDataset shape: {X.shape}")
-    print(f"Features: {housing.feature_names}")
-    print("Target variable: Median house value (in $100,000s)")
 
-    X_train, X_test, y_train, y_test = train_test_split(
+print(f"\nDataset shape: {X.shape}")
+print(f"Features: {feature_names}")
+print("Target variable: Median house value (in $100,000s)")
+
+X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42
     )
 
-    print(f"\nTraining set size: {X_train.shape[0]}")
-    print(f"Test set size: {X_test.shape[0]}")
+print(f"\nTraining set size: {X_train.shape[0]}")
+print(f"Test set size: {X_test.shape[0]}")
 
-    model = LinearRegression()
-    model.fit(X_train, y_train)
+model = LinearRegression()
+model.fit(X_train, y_train)
 
-    print("\n--- Model Training Complete ---")
-    print(f"Number of features: {len(model.coef_)}")
+print("\n--- Model Training Complete ---")
+print(f"Number of features: {len(model.coef_)}")
 
-    y_pred_test = model.predict(X_test)
-    y_pred_train = model.predict(X_train)
+y_pred_test = model.predict(X_test)
+y_pred_train = model.predict(X_train)
 
     mse_test = mean_squared_error(y_test, y_pred_test)
     rmse_test = float(np.sqrt(mse_test))
@@ -105,7 +106,7 @@ def exercise_1_linear_regression(output_dir: Path, show_plots: bool) -> None:
     print(f"  RMSE: {rmse_train:.4f}")
 
     banner("FEATURE IMPORTANCE (Coefficients)")
-    for feature, coef in zip(housing.feature_names, model.coef_):
+    for feature, coef in zip(feature_names, model.coef_):
         print(f"  {feature:20s}: {coef:10.6f}")
     print(f"  {'Intercept':20s}: {model.intercept_:10.6f}")
 
@@ -162,15 +163,15 @@ def exercise_2_classification(output_dir: Path, show_plots: bool, k: int) -> Non
     X = cancer.data
     y = cancer.target
 
-    print(f"\nDataset shape: {X.shape}")
-    print(f"Number of features: {X.shape[1]}")
-    print(f"Target classes: {list(cancer.target_names)}")
-    print("  0 = Malignant (cancerous)")
-    print("  1 = Benign (non-cancerous)")
-    unique, counts = np.unique(y, return_counts=True)
-    print("Class distribution:", {cancer.target_names[int(u)]: int(c) for u, c in zip(unique, counts)})
+print(f"\nDataset shape: {X.shape}")
+print(f"Number of features: {X.shape[1]}")
+print(f"Target classes: {list(cancer.target_names)}")
+print("  0 = Malignant (cancerous)")
+print("  1 = Benign (non-cancerous)")
+unique, counts = np.unique(y, return_counts=True)
+print("Class distribution:", {cancer.target_names[int(u)]: int(c) for u, c in zip(unique, counts)})
 
-    X_train, X_test, y_train, y_test = train_test_split(
+X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42, stratify=y
     )
 
