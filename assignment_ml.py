@@ -3,7 +3,7 @@
 NTU Assignment - Linear Regression + Classification
 
 Exercise 1:
-- Linear Regression on California Housing dataset
+- Linear Regression on California Housing dataset (fallback to Diabetes if no internet)
 - Evaluate on test set
 - Save plots
 
@@ -48,42 +48,61 @@ def banner(title: str) -> None:
     print("=" * 70)
 
 
+def get_regression_dataset():
+    """
+    Try California Housing (may require internet for first download).
+    If it fails, fallback to Diabetes dataset (offline).
+    Returns: (X, y, feature_names, target_name, dataset_name, target_units_note)
+    """
+    try:
+        housing = fetch_california_housing()
+        X = housing.data
+        y = housing.target
+        feature_names = list(housing.feature_names)
+        target_name = "Median house value"
+        dataset_name = "California Housing"
+        target_units_note = "Target is in $100,000s"
+        return X, y, feature_names, target_name, dataset_name, target_units_note
+    except Exception as e:
+        print("\n[WARN] Could not fetch California Housing dataset (likely no internet).")
+        print("Falling back to Diabetes dataset (offline).")
+        print("Error details:", repr(e))
+
+        diabetes = load_diabetes()
+        X = diabetes.data
+        y = diabetes.target
+        feature_names = list(diabetes.feature_names)
+        target_name = "Disease progression"
+        dataset_name = "Diabetes"
+        target_units_note = "Target is a quantitative measure (units per sklearn docs)"
+        return X, y, feature_names, target_name, dataset_name, target_units_note
+
+
 def exercise_1_linear_regression(output_dir: Path, show_plots: bool) -> None:
-    banner("EXERCISE 1: LINEAR REGRESSION - CALIFORNIA HOUSING")
+    banner("EXERCISE 1: LINEAR REGRESSION")
 
-    # California Housing requires an internet download the first time.
-try:
-    housing = fetch_california_housing()
-except Exception as e:
-    print("\n[ERROR] Could not fetch California Housing dataset.")
-    print("This often happens when there is no internet access in the grading environment.")
-    print("Error details:", repr(e))
-    print("Tip: Re-run once you have internet, or run in an environment where sklearn datasets can download.")
-    return
+    X, y, feature_names, target_name, dataset_name, target_units_note = get_regression_dataset()
 
-X = housing.data
-y = housing.target
+    print(f"\nDataset: {dataset_name}")
+    print(f"Dataset shape: {X.shape}")
+    print(f"Features: {feature_names}")
+    print(f"Target: {target_name} ({target_units_note})")
 
-
-print(f"\nDataset shape: {X.shape}")
-print(f"Features: {feature_names}")
-print("Target variable: Median house value (in $100,000s)")
-
-X_train, X_test, y_train, y_test = train_test_split(
+    X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42
     )
 
-print(f"\nTraining set size: {X_train.shape[0]}")
-print(f"Test set size: {X_test.shape[0]}")
+    print(f"\nTraining set size: {X_train.shape[0]}")
+    print(f"Test set size: {X_test.shape[0]}")
 
-model = LinearRegression()
-model.fit(X_train, y_train)
+    model = LinearRegression()
+    model.fit(X_train, y_train)
 
-print("\n--- Model Training Complete ---")
-print(f"Number of features: {len(model.coef_)}")
+    print("\n--- Model Training Complete ---")
+    print(f"Number of features: {len(model.coef_)}")
 
-y_pred_test = model.predict(X_test)
-y_pred_train = model.predict(X_train)
+    y_pred_test = model.predict(X_test)
+    y_pred_train = model.predict(X_train)
 
     mse_test = mean_squared_error(y_test, y_pred_test)
     rmse_test = float(np.sqrt(mse_test))
@@ -94,7 +113,7 @@ y_pred_train = model.predict(X_train)
     rmse_train = float(np.sqrt(mse_train))
     r2_train = r2_score(y_train, y_pred_train)
 
-    banner("EVALUATION METRICS ON TEST SET")
+    banner("EVALUATION METRICS")
     print("Test Set Performance:")
     print(f"  R² Score: {r2_test:.4f}")
     print(f"  Mean Squared Error (MSE): {mse_test:.4f}")
@@ -122,9 +141,9 @@ y_pred_train = model.predict(X_train)
         lw=2,
         label="Perfect prediction",
     )
-    axes[0].set_xlabel("Actual House Prices")
-    axes[0].set_ylabel("Predicted House Prices")
-    axes[0].set_title(f"Linear Regression: Actual vs Predicted (R²={r2_test:.4f})")
+    axes[0].set_xlabel("Actual")
+    axes[0].set_ylabel("Predicted")
+    axes[0].set_title(f"{dataset_name}: Actual vs Predicted (R²={r2_test:.4f})")
     axes[0].grid(alpha=0.3)
     axes[0].legend()
 
@@ -132,7 +151,7 @@ y_pred_train = model.predict(X_train)
     residuals = y_test - y_pred_test
     axes[1].scatter(y_pred_test, residuals, alpha=0.5, s=20)
     axes[1].axhline(y=0, color="r", linestyle="--", lw=2)
-    axes[1].set_xlabel("Predicted House Prices")
+    axes[1].set_xlabel("Predicted")
     axes[1].set_ylabel("Residuals (Actual - Predicted)")
     axes[1].set_title("Residual Plot")
     axes[1].grid(alpha=0.3)
@@ -149,11 +168,8 @@ y_pred_train = model.predict(X_train)
         plt.close(fig)
 
     banner("INTERPRETATION")
-    print(f"The model explains {r2_test * 100:.2f}% of the variance in house prices.")
-    print(
-        f"On average, predictions are off by about ${rmse_test * 100:.2f}k "
-        f"(~${rmse_test * 100000:.0f}) per house."
-    )
+    print(f"The model explains {r2_test * 100:.2f}% of the variance in the target.")
+    print(f"On average, predictions are off by about {rmse_test:.4f} (RMSE units).")
 
 
 def exercise_2_classification(output_dir: Path, show_plots: bool, k: int) -> None:
@@ -163,15 +179,15 @@ def exercise_2_classification(output_dir: Path, show_plots: bool, k: int) -> Non
     X = cancer.data
     y = cancer.target
 
-print(f"\nDataset shape: {X.shape}")
-print(f"Number of features: {X.shape[1]}")
-print(f"Target classes: {list(cancer.target_names)}")
-print("  0 = Malignant (cancerous)")
-print("  1 = Benign (non-cancerous)")
-unique, counts = np.unique(y, return_counts=True)
-print("Class distribution:", {cancer.target_names[int(u)]: int(c) for u, c in zip(unique, counts)})
+    print(f"\nDataset shape: {X.shape}")
+    print(f"Number of features: {X.shape[1]}")
+    print(f"Target classes: {list(cancer.target_names)}")
+    print("  0 = Malignant (cancerous)")
+    print("  1 = Benign (non-cancerous)")
+    unique, counts = np.unique(y, return_counts=True)
+    print("Class distribution:", {cancer.target_names[int(u)]: int(c) for u, c in zip(unique, counts)})
 
-X_train, X_test, y_train, y_test = train_test_split(
+    X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42, stratify=y
     )
 
@@ -203,7 +219,6 @@ X_train, X_test, y_train, y_test = train_test_split(
     y_pred_knn = knn_clf.predict(X_test_scaled)
     y_proba_knn = knn_clf.predict_proba(X_test_scaled)[:, 1]
 
-    # Metrics helper
     def metrics_block(name: str, y_true, y_pred, y_proba):
         acc = accuracy_score(y_true, y_pred)
         prec = precision_score(y_true, y_pred)
@@ -223,13 +238,11 @@ X_train, X_test, y_train, y_test = train_test_split(
         print(f"  False Positives: {cm[0,1]}")
         print(f"  False Negatives: {cm[1,0]}")
         print(f"  True Positives:  {cm[1,1]}")
-
         return acc, prec, rec, f1, auc, cm
 
     lr_scores = metrics_block("LOGISTIC REGRESSION", y_test, y_pred_lr, y_proba_lr)
     knn_scores = metrics_block(f"KNN (k={k})", y_test, y_pred_knn, y_proba_knn)
 
-    # Comparison table
     (lr_acc, lr_prec, lr_rec, lr_f1, lr_auc, cm_lr) = lr_scores
     (knn_acc, knn_prec, knn_rec, knn_f1, knn_auc, cm_knn) = knn_scores
 
@@ -250,7 +263,7 @@ X_train, X_test, y_train, y_test = train_test_split(
     print(f"{'F1-Score':<15} {lr_f1:<15.4f} {knn_f1:<15.4f} {winner(lr_f1, knn_f1):<15}")
     print(f"{'ROC-AUC':<15} {lr_auc:<15.4f} {knn_auc:<15.4f} {winner(lr_auc, knn_auc):<15}")
 
-    # Plots: Confusion matrices + ROC curves
+    # Plots
     fig = plt.figure(figsize=(14, 9))
     gs = fig.add_gridspec(2, 2)
 
